@@ -4,12 +4,16 @@ declare(strict_types=1);
 
 /** @var xPDOTransport $transport */
 /** @var array $options */
+
 if (!$transport->xpdo) {
     return false;
 }
 if ($options[xPDOTransport::PACKAGE_ACTION] != xPDOTransport::ACTION_UNINSTALL) {
     return true;
 }
+/*if (empty($options[xPDOTransport::PREEXISTING_MODE])) {
+    return true;
+}*/
 
 [$name, $version] = $transport::parseSignature($transport->signature);
 $wrapperPath = MODX_CORE_PATH . "components/{$name}/PackageComposerWrapper.php";

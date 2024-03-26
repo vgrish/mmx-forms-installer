@@ -65,6 +65,26 @@ class PackageComposerWrapper
         return $this->response($code, $result);
     }
 
+    public function update(array $packages): array
+    {
+        $stream = fopen('php://temp', 'w+');
+        $code = $this->application()->run(
+            new \Symfony\Component\Console\Input\ArrayInput([
+                'command' => 'update',
+                'packages' => $packages,
+                '--no-interaction' => true,
+                '--no-scripts' => true,
+                '--no-plugins' => true,
+                '--working-dir' => MODX_BASE_PATH,
+            ]),
+            new \Symfony\Component\Console\Output\StreamOutput($stream)
+        );
+        $result = stream_get_contents($stream, -1, 0);
+        fclose($stream);
+
+        return $this->response($code, $result);
+    }
+
     public function remove(array $packages): array
     {
         $stream = fopen('php://temp', 'w+');

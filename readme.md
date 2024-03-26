@@ -1,4 +1,4 @@
-# mmxForms package installer for MODX3
+# [mmx-forms](https://github.com/bezumkin/mmx-forms) package installer for MODX3
 
 ### Author: Vgrish <vgrish@gmail.com>
 
