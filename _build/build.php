@@ -8,7 +8,7 @@ ini_set('display_errors', 'On');
 
 $config = [
     'name' => 'mmxForms',
-    'version' => '1.0.0',
+    'version' => '1.0.1',
     'release' => 'pl',
     'install' => false,
     'download' => false,
@@ -37,7 +37,6 @@ require_once MODX_CORE_PATH . 'vendor/autoload.php';
 
 use xPDO\xPDO;
 use xPDO\Om\xPDOGenerator;
-use xPDO\Transport\xPDOFileVehicle;
 use xPDO\Transport\xPDOTransport;
 use MODX\Revolution\modNamespace;
 
@@ -74,14 +73,6 @@ if (file_exists($directory . $signature) and is_dir($directory . $signature)) {
 }
 
 $package = new xPDOTransport($xpdo, $signature, $directory);
-// Add files
-$package->put(
-    [
-        'source' => $core,
-        'target' => "return MODX_CORE_PATH . 'components/';",
-    ],
-    ['vehicle_class' => xPDOFileVehicle::class]
-);
 
 // Add validators
 $validators = [];
@@ -103,25 +94,20 @@ foreach (scandir(__DIR__ . '/resolvers/') as $file) {
     $xpdo->log(LOG, 'Added resolver "' . preg_replace('#\.php$#', '', $file) . '"');
 }
 
-$namespace = new modNamespace($xpdo);
-$namespace->fromArray([
-    'id' => PKG_NAME_LOWER,
-    'name' => PKG_NAME_LOWER,
-    'path' => '{core_path}components/' . PKG_NAME_LOWER . '/',
-]);
-
-$package->put($namespace, [
-    xPDOTransport::UNIQUE_KEY => 'name',
-    xPDOTransport::PRESERVE_KEYS => false,
-    xPDOTransport::UPDATE_OBJECT => false,
-    xPDOTransport::NATIVE_KEY => PKG_NAME_LOWER,
-    xPDOTransport::ABORT_INSTALL_ON_VEHICLE_FAIL => true,
-    'namespace' => PKG_NAME_LOWER,
-    'package' => 'modx',
-    'validate' => $validators,
-    'resolve' => $resolvers,
-]);
-
+$package->put(
+    new modNamespace($xpdo),
+    [
+        xPDOTransport::UNIQUE_KEY => 'name',
+        xPDOTransport::PRESERVE_KEYS => false,
+        xPDOTransport::UPDATE_OBJECT => false,
+        xPDOTransport::NATIVE_KEY => PKG_NAME_LOWER,
+        xPDOTransport::ABORT_INSTALL_ON_VEHICLE_FAIL => true,
+        'namespace' => PKG_NAME_LOWER,
+        'package' => 'modx',
+        'validate' => $validators,
+        'resolve' => $resolvers,
+    ],
+);
 
 $package->setAttribute('changelog', file_get_contents(__DIR__ . '/../changelog.md'));
 $package->setAttribute('license', file_get_contents(__DIR__ . '/../license.md'));

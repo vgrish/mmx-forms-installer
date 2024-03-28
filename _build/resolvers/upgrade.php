@@ -12,10 +12,8 @@ if ($options[xPDOTransport::PACKAGE_ACTION] != xPDOTransport::ACTION_UPGRADE) {
     return true;
 }
 
-[$name, $version] = $transport::parseSignature($transport->signature);
-$wrapperPath = MODX_CORE_PATH . "components/{$name}/PackageComposerWrapper.php";
-if (!class_exists('PackageComposerWrapper') and file_exists($wrapperPath)) {
-    require_once $wrapperPath;
+if ($wrapper = glob(__DIR__ . '/*.wrapper.resolver')) {
+    include_once reset($wrapper);
 }
 if (!class_exists('PackageComposerWrapper')) {
     $transport->xpdo->log(xPDO::LOG_LEVEL_ERROR, "I can't get the wrapper class 'PackageComposerWrapper'");
