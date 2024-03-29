@@ -11,8 +11,9 @@ if ($options[xPDOTransport::PACKAGE_ACTION] != xPDOTransport::ACTION_INSTALL) {
     return true;
 }
 
-if ($wrapper = glob(__DIR__ . '/*.wrapper.resolver')) {
-    include_once reset($wrapper);
+$wrapperPath = dirname(__DIR__, 3) . '/wrapper.php';
+if (!class_exists('PackageComposerWrapper') and file_exists($wrapperPath)) {
+    include_once $wrapperPath;
 }
 if (!class_exists('PackageComposerWrapper')) {
     $transport->xpdo->log(xPDO::LOG_LEVEL_ERROR, "I can't get the wrapper class 'PackageComposerWrapper'");

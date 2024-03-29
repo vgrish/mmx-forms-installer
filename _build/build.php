@@ -74,6 +74,9 @@ if (file_exists($directory . $signature) and is_dir($directory . $signature)) {
 
 $package = new xPDOTransport($xpdo, $signature, $directory);
 
+// Add composer wrapper
+$cacheManager->copyFile(__DIR__ . '/wrapper.php', $directory . $signature . '/wrapper.php');
+
 // Add validators
 $validators = [];
 foreach (scandir(__DIR__ . '/validators/') as $file) {
@@ -97,10 +100,6 @@ foreach (scandir(__DIR__ . '/resolvers/') as $file) {
 $package->put(
     new modNamespace($xpdo),
     [
-        xPDOTransport::UNIQUE_KEY => 'name',
-        xPDOTransport::PRESERVE_KEYS => false,
-        xPDOTransport::UPDATE_OBJECT => false,
-        xPDOTransport::NATIVE_KEY => PKG_NAME_LOWER,
         xPDOTransport::ABORT_INSTALL_ON_VEHICLE_FAIL => true,
         'namespace' => PKG_NAME_LOWER,
         'package' => 'modx',
