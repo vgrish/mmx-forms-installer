@@ -8,7 +8,7 @@ ini_set('display_errors', 'On');
 
 $config = [
     'name' => 'mmxForms',
-    'version' => '1.0.1',
+    'version' => '1.0.2',
     'release' => 'pl',
     'install' => false,
     'download' => false,
@@ -118,6 +118,9 @@ $package->setAttribute(
         'modx' => '>=3.0',
     ]
 );
+$package->setAttribute('setup-options', [
+    'source' => __DIR__ . '/options.php',
+]);
 
 if ($package->pack()) {
     $xpdo->log(LOG, "Package built");

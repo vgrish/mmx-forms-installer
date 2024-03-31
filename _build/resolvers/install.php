@@ -7,22 +7,23 @@ declare(strict_types=1);
 if (!$transport->xpdo) {
     return false;
 }
-if ($options[xPDOTransport::PACKAGE_ACTION] != xPDOTransport::ACTION_INSTALL) {
+if (!in_array($options[xPDOTransport::PACKAGE_ACTION], [xPDOTransport::ACTION_INSTALL, xPDOTransport::ACTION_UPGRADE])) {
     return true;
 }
 
-$wrapperPath = dirname(__DIR__, 3) . '/wrapper.php';
-if (!class_exists('PackageComposerWrapper') and file_exists($wrapperPath)) {
-    include_once $wrapperPath;
-}
-if (!class_exists('PackageComposerWrapper')) {
-    $transport->xpdo->log(xPDO::LOG_LEVEL_ERROR, "I can't get the wrapper class 'PackageComposerWrapper'");
+include_once dirname(__DIR__, 3) . '/wrapper.php';
+if (!PackageComposerWrapper::load()) {
+    $transport->xpdo->log(xPDO::LOG_LEVEL_ERROR, "I can't initialize the \"PackageComposerWrapper\" class");
     return false;
 }
 
-$pcw = new \PackageComposerWrapper();
+$package = $packageWithVersion = 'mmx/forms';
+if ($version = $options['version'] ?? '') {
+    $packageWithVersion = "{$package}:{$version}";
+}
 
-$output = $pcw->require(['mmx/database', 'mmx/forms']);
+$pcw = new \PackageComposerWrapper();
+$output = $pcw->require([$packageWithVersion]);
 $transport->xpdo->log(empty($output['success']) ? xPDO::LOG_LEVEL_ERROR : xPDO::LOG_LEVEL_INFO, print_r($output['result'], true));
 if (empty($output['success'])) {
     return false;
@@ -30,14 +31,20 @@ if (empty($output['success'])) {
 
 $output = $pcw->exec('mmx-database', 'install');
 $transport->xpdo->log(empty($output['success']) ? xPDO::LOG_LEVEL_ERROR : xPDO::LOG_LEVEL_INFO, print_r($output['result'], true));
-if (empty($output['success'])) {
-    return false;
-}
 
 $output = $pcw->exec('mmx-forms', 'install');
 $transport->xpdo->log(empty($output['success']) ? xPDO::LOG_LEVEL_ERROR : xPDO::LOG_LEVEL_INFO, print_r($output['result'], true));
-if (empty($output['success'])) {
-    return false;
+
+$installed = null;
+try {
+    $installed = \Composer\InstalledVersions::getPrettyVersion($package);
+} catch (Throwable $e) {
 }
 
-return true;
+if ($installed) {
+    $transport->xpdo->log(xPDO::LOG_LEVEL_INFO, "The \"{$package}:{$installed}\" package has been successfully installed");
+    return true;
+}
+
+$transport->xpdo->log(xPDO::LOG_LEVEL_ERROR, "The \"{$package}\" package was not installed");
+return false;

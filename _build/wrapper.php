@@ -1,13 +1,43 @@
 <?php
 
-require_once 'phar://' . MODX_BASE_PATH . 'composer.phar/vendor/autoload.php';
-
 class PackageComposerWrapper
 {
     private string $workingPath;
     private string $vendorPath;
     private string $jsonPath;
     private string $phpPath;
+
+    public static function load(): bool
+    {
+        $load = self::loadComposer() and self::loadComposerJson();
+        if ($load) {
+            require_once 'phar://' . MODX_BASE_PATH . 'composer.phar/vendor/autoload.php';
+        }
+        return $load;
+    }
+
+    protected static function loadComposer(): bool
+    {
+        $composer = MODX_BASE_PATH . 'composer.phar';
+        if (!file_exists($composer)) {
+            return copy("https://getcomposer.org/composer.phar", $composer);
+        }
+        return true;
+    }
+
+    protected static function loadComposerJson(): bool
+    {
+        $json = MODX_BASE_PATH . '/composer.json';
+        if (!file_exists($json)) {
+            $version = @ include_once MODX_CORE_PATH . 'docs/version.inc.php';
+            if ($version and isset($version['full_version'])) {
+                return copy("https://raw.githubusercontent.com/modxcms/revolution/v{$version['full_version']}/composer.json", $json);
+            }
+            return false;
+        }
+
+        return true;
+    }
 
     public function __construct()
     {
@@ -43,6 +73,36 @@ class PackageComposerWrapper
         $application->setCatchExceptions(false);
 
         return $application;
+    }
+
+    public function getComposer(): ?Composer\Composer
+    {
+        return $this->application()?->getComposer();
+    }
+
+    public function show(string $package, $arg = []): array
+    {
+        $stream = fopen('php://temp', 'w+');
+        $code = $this->application()->run(
+            new \Symfony\Component\Console\Input\ArrayInput(
+                array_merge(
+                    [
+                        'command' => 'show',
+                        'package' => $package,
+                        '--no-interaction' => true,
+                        '--no-scripts' => true,
+                        '--no-plugins' => true,
+                        '--working-dir' => MODX_BASE_PATH,
+                    ],
+                    $arg
+                )
+            ),
+            new \Symfony\Component\Console\Output\StreamOutput($stream)
+        );
+        $result = stream_get_contents($stream, -1, 0);
+        fclose($stream);
+
+        return $this->response($code, $result);
     }
 
     public function require(array $packages): array
@@ -127,7 +187,11 @@ class PackageComposerWrapper
 
     public function response(string $code, string $result): array
     {
-        if (!in_array(\PHP_SAPI, ['cli', 'cli-server', 'phpdbg'], true)) {
+        if (in_array($result[0], ['{', '['])) {
+            $result = json_decode($result, true);
+        }
+
+        if (!is_array($result) and !in_array(\PHP_SAPI, ['cli', 'cli-server', 'phpdbg'], true)) {
             $result = str_replace(
                 [
                     '<info>', '</info>',
